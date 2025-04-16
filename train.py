@@ -6,6 +6,7 @@ import pandas as pd
 import torch
 from tqdm.auto import tqdm
 from sklearn.model_selection import StratifiedKFold
+from torch.utils.data import DataLoader
 
 from utils import (BirdCLEFDataset, collate_fn, set_seed, get_optimizer, get_scheduler,
                    get_criterion, calculate_auc)
@@ -82,7 +83,7 @@ def run_train(train_df, cfg):
         print(f"\n{'='*30} Fold {fold} {'='*30}")
         train_fold = train_df.iloc[train_idx].reset_index(drop=True)
         val_fold = train_df.iloc[val_idx].reset_index(drop=True)
-        from torch.utils.data import DataLoader
+
         train_dataset = BirdCLEFDataset(train_fold, cfg, spectrograms=spectrograms, mode='train')
         val_dataset = BirdCLEFDataset(val_fold, cfg, spectrograms=spectrograms, mode='valid')
         train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=True,
@@ -103,8 +104,21 @@ def run_train(train_df, cfg):
         best_epoch = 0
         for epoch in range(cfg.epochs):
             print(f"\nEpoch {epoch+1}/{cfg.epochs}")
-            train_loss, train_auc = train_one_epoch(model, train_loader, optimizer, criterion, cfg.device, scheduler)
-            val_loss, val_auc = validate(model, val_loader, criterion, cfg.device)
+            train_loss, train_auc = train_one_epoch(
+                model, 
+                train_loader, 
+                optimizer, 
+                criterion, 
+                cfg.device, 
+                scheduler
+            )
+            val_loss, val_auc = validate(
+                model, 
+                val_loader, 
+                criterion, 
+                cfg.device
+            )
+            
             if scheduler is not None and scheduler.__class__.__name__ != 'OneCycleLR':
                 if scheduler.__class__.__name__ == 'ReduceLROnPlateau':
                     scheduler.step(val_loss)
@@ -112,6 +126,7 @@ def run_train(train_df, cfg):
                     scheduler.step()
             print(f"Train Loss: {train_loss:.4f}, Train AUC: {train_auc:.4f}")
             print(f"Val Loss: {val_loss:.4f}, Val AUC: {val_auc:.4f}")
+            
             if val_auc > best_auc:
                 best_auc = val_auc
                 best_epoch = epoch + 1
@@ -127,11 +142,14 @@ def run_train(train_df, cfg):
                 save_path = os.path.join(cfg.OUTPUT_DIR, f"model_fold{fold}.pth")
                 torch.save(checkpoint, save_path)
                 print(f"Checkpoint saved to {save_path}")
+                
         best_scores.append(best_auc)
+        
         # Clear memory.
         del model, optimizer, scheduler, train_loader, val_loader
         torch.cuda.empty_cache()
         gc.collect()
+        
     print("\nCross-Validation Results:")
     for idx, score in enumerate(best_scores):
         print(f"Fold {cfg.selected_folds[idx]}: {score:.4f}")
