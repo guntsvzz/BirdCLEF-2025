@@ -5,7 +5,7 @@ import os
 
 from utils import set_seed, run_preprocessing
 from train import run_train
-from valid import run_valid
+from test import run_test
 from args import CFG
 
 def main(args):
@@ -37,36 +37,36 @@ def main(args):
     elif args.mode == "train":
         run_train(train_df, CFG)
         
-    elif args.mode == "valid":
+    elif args.mode == "test":
         if not args.checkpoint:
-            print("Checkpoint path is required for validation mode.")
+            print("Checkpoint path is required for test mode.")
             return
-        run_valid(CFG, args.checkpoint, train_df)  # For demo, using train_csv as validation.
+        run_test(CFG, args.checkpoint, train_df)  # For demo, using train_csv as test.
         
-    elif args.mode == "train_valid":
+    elif args.mode == "train_test":
         run_train(train_df, CFG)
         if not args.checkpoint:
-            print("Checkpoint path is required for validation mode after training.")
+            print("Checkpoint path is required for test mode after training.")
             return
-        run_valid(CFG, args.checkpoint, train_df)
+        run_test(CFG, args.checkpoint, train_df)
     else:
         print("Unrecognized mode.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Main entry: choose mode among 'pre', 'train', 'valid', 'train_valid'"
+        description="Main entry: choose mode among 'pre', 'train', 'test', 'train_test'"
     )
     parser.add_argument(
         "--mode", 
         type=str, 
         required=True,
-        choices=["pre", "train", "valid", "train_valid"],
-        help="Operation mode: pre (preprocessing), train, valid, or train_valid"
+        choices=["pre", "train", "test", "train_test"],
+        help="Operation mode: pre (preprocessing), train, test, or train_test"
     )
     parser.add_argument(
         "--checkpoint", 
         type=str, 
-        help="Path to checkpoint for validation"
+        help="Path to checkpoint for test"
         )
     # Additional arguments can override configuration options.
     parser.add_argument(

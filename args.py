@@ -1,3 +1,5 @@
+import os
+
 # Global configuration can be set here or imported from a separate config file.
 class CFG:
     seed            = 42
@@ -7,11 +9,11 @@ class CFG:
     num_workers     = 1
 
     # Directories
-    OUTPUT_DIR      = './'
-    train_datadir   = './data/train_audio'
-    train_csv       = './data/train.csv'
-    taxonomy_csv    = './data/taxonomy.csv'
-    spectrogram_npy = './data/birdclef2025_melspec_5sec_256_256.npy'
+    OUTPUT_DIR      = './checkpoints'
+    train_datadir   = os.path.expanduser('~/Dataset/CV/birdclef-2025/train_audio')
+    train_csv       = os.path.expanduser('~/Dataset/CV/birdclef-2025/train.csv')
+    taxonomy_csv    = os.path.expanduser('~/Dataset/CV/birdclef-2025/taxonomy.csv')
+    spectrogram_npy = os.path.expanduser('~/Dataset/CV/birdclef25-mel-spectrograms/birdclef2025_melspec_5sec_256_256.npy')
 
     # Model parameters
     model_name      = 'efficientnet_b0'

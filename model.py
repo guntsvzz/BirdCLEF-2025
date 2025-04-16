@@ -20,7 +20,7 @@ class BirdCLEFModel(nn.Module):
             drop_path_rate= 0.2
         )
 
-        if 'efficientnet' in cfg.model_name:
+        if 'efficientnet_b0' in cfg.model_name:
             backbone_out = self.backbone.classifier.in_features
             self.backbone.classifier = nn.Identity()
         elif 'resnet' in cfg.model_name:

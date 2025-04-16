@@ -8,8 +8,16 @@ from tqdm.auto import tqdm
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader
 
-from utils import (BirdCLEFDataset, collate_fn, set_seed, get_optimizer, get_scheduler,
-                   get_criterion, calculate_auc)
+from utils import (
+    BirdCLEFDataset, 
+    collate_fn, 
+    set_seed, 
+    get_optimizer, 
+    get_scheduler,
+    get_criterion, 
+    calculate_auc
+    )
+
 from model import BirdCLEFModel
 
 def train_one_epoch(model, loader, optimizer, criterion, device, scheduler=None):
@@ -137,9 +145,9 @@ def run_train(train_df, cfg):
                     'epoch': epoch,
                     'val_auc': val_auc,
                     'train_auc': train_auc,
-                    'cfg': cfg.__dict__
+                    'cfg': cfg
                 }
-                save_path = os.path.join(cfg.OUTPUT_DIR, f"model_fold{fold}.pth")
+                save_path = os.path.join(cfg.OUTPUT_DIR, f"model_{cfg.model_name}.pth") #fold{fold}
                 torch.save(checkpoint, save_path)
                 print(f"Checkpoint saved to {save_path}")
                 

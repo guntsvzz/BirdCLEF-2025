@@ -9,7 +9,7 @@ from tqdm.auto import tqdm
 from model import BirdCLEFModel
 from utils import BirdCLEFDataset, collate_fn, get_criterion, calculate_auc
 
-def run_valid(cfg, checkpoint_path, val_df):
+def run_test(cfg, checkpoint_path, val_df):
     device = cfg.device
     # Load pre-computed spectrograms if desired.
     spectrograms = None
@@ -20,7 +20,7 @@ def run_valid(cfg, checkpoint_path, val_df):
         except Exception as e:
             print("Error loading spectrograms, switching to on-the-fly processing.", e)
             cfg.LOAD_DATA = False
-    dataset = BirdCLEFDataset(val_df, cfg, spectrograms=spectrograms, mode="valid")
+    dataset = BirdCLEFDataset(val_df, cfg, spectrograms=spectrograms, mode="test")
     loader = DataLoader(dataset, batch_size=cfg.batch_size, shuffle=False,
                         num_workers=cfg.num_workers, collate_fn=collate_fn)
     model = BirdCLEFModel(cfg).to(device)
@@ -32,7 +32,7 @@ def run_valid(cfg, checkpoint_path, val_df):
     all_targets = []
     all_outputs = []
     with torch.no_grad():
-        for batch in tqdm(loader, desc="Validation"):
+        for batch in tqdm(loader, desc="Test"):
             inputs = batch['melspec'].to(device)
             targets = batch['target'].to(device)
             outputs = model(inputs)
@@ -43,4 +43,4 @@ def run_valid(cfg, checkpoint_path, val_df):
     all_outputs = np.concatenate(all_outputs)
     all_targets = np.concatenate(all_targets)
     auc = calculate_auc(all_targets, all_outputs)
-    print(f"Validation Loss: {np.mean(losses):.4f}, Validation AUC: {auc:.4f}")
+    print(f"Test Loss: {np.mean(losses):.4f}, Test AUC: {auc:.4f}")
