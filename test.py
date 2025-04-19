@@ -9,7 +9,7 @@ from tqdm.auto import tqdm
 from model import BirdCLEFModel
 from utils import BirdCLEFDataset, collate_fn, get_criterion, calculate_auc
 
-def run_test(cfg, checkpoint_path, val_df):
+def run_test(cfg, checkpoint_path, val_df, args):
     device = cfg.device
     # Load pre-computed spectrograms if desired.
     spectrograms = None

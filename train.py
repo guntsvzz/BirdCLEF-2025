@@ -4,10 +4,11 @@ import gc
 import numpy as np
 import pandas as pd
 import torch
+import glob
 from tqdm.auto import tqdm
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader
-
+from classdataset import ModifyBirdCLEFDataset
 from utils import (
     BirdCLEFDataset, 
     collate_fn, 
@@ -15,7 +16,8 @@ from utils import (
     get_optimizer, 
     get_scheduler,
     get_criterion, 
-    calculate_auc
+    calculate_auc,
+    CustomDict
     )
 
 from model import BirdCLEFModel
@@ -65,7 +67,7 @@ def validate(model, loader, criterion, device):
     auc = calculate_auc(all_targets, all_outputs)
     return np.mean(losses), auc
 
-def run_train(train_df, cfg):
+def run_train(train_df, cfg, args):
     # Make sure to update num_classes by loading taxonomy.
     taxonomy_df = pd.read_csv(cfg.taxonomy_csv)
     cfg.num_classes = len(taxonomy_df)
@@ -75,12 +77,20 @@ def run_train(train_df, cfg):
     # Optionally load pre-computed spectrograms.
     spectrograms = None
     if cfg.LOAD_DATA:
-        try:
-            spectrograms = np.load(cfg.spectrogram_npy, allow_pickle=True).item()
-            print(f"Loaded {len(spectrograms)} pre-computed spectrograms")
-        except Exception as e:
-            print("Error loading spectrograms, switching to on-the-fly processing.", e)
-            cfg.LOAD_DATA = False
+        if args.datasets == 'origin':
+            try:
+                spectrograms = np.load(cfg.spectrogram_npy, allow_pickle=True).item()
+                print(f"Loaded {len(spectrograms)} pre-computed spectrograms")
+            except Exception as e:
+                print("Error loading spectrograms, switching to on-the-fly processing.", e)
+                cfg.LOAD_DATA = False
+        elif args.datasets == 'modify':
+            cfg.spectrogram_npy = os.path.expanduser('~/Dataset/CV/birdclef-2025/preprocessed/**/*.npy')
+            npy_paths = sorted(glob.glob(cfg.spectrogram_npy))
+            len(npy_paths)
+            spectrograms = CustomDict()
+            for npy_path in npy_paths:
+                spectrograms[npy_path] = npy_path
 
     # Stratified KFold split.
     skf = StratifiedKFold(n_splits=cfg.n_fold, shuffle=True, random_state=cfg.seed)
@@ -92,8 +102,13 @@ def run_train(train_df, cfg):
         train_fold = train_df.iloc[train_idx].reset_index(drop=True)
         val_fold = train_df.iloc[val_idx].reset_index(drop=True)
 
-        train_dataset = BirdCLEFDataset(train_fold, cfg, spectrograms=spectrograms, mode='train')
-        val_dataset = BirdCLEFDataset(val_fold, cfg, spectrograms=spectrograms, mode='valid')
+        if args.datasets == 'origin':
+            train_dataset = BirdCLEFDataset(train_fold, cfg, spectrograms=spectrograms, mode='train')
+            val_dataset = BirdCLEFDataset(val_fold, cfg, spectrograms=spectrograms, mode='valid')
+        elif args.datasets == 'modify':
+            train_dataset = ModifyBirdCLEFDataset(train_fold, cfg, spectrograms=spectrograms, mode='train')
+            val_dataset = ModifyBirdCLEFDataset(val_fold, cfg, spectrograms=spectrograms, mode='valid')
+            
         train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=True,
                                   num_workers=cfg.num_workers, collate_fn=collate_fn, drop_last=True)
         val_loader = DataLoader(val_dataset, batch_size=cfg.batch_size, shuffle=False,
@@ -147,7 +162,7 @@ def run_train(train_df, cfg):
                     'train_auc': train_auc,
                     'cfg': cfg
                 }
-                save_path = os.path.join(cfg.OUTPUT_DIR, f"model_{cfg.model_name}.pth") #fold{fold}
+                save_path = os.path.join(cfg.OUTPUT_DIR, f"model_{cfg.model_name}_{cfg.datasets}_epoch_{cfg.epochs}.pth") #fold{fold}
                 torch.save(checkpoint, save_path)
                 print(f"Checkpoint saved to {save_path}")
                 

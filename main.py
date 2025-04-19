@@ -27,28 +27,33 @@ def main(args):
         else:
             CFG.LOAD_DATA = args.load_data
 
-    # Load the training CSV.
-    train_df = pd.read_csv(CFG.train_csv)
+    CFG.datasets=args.datasets
+    if args.datasets == 'origin':
+        # Load the training CSV.
+        train_df = pd.read_csv(CFG.train_csv)
+    elif args.datasets == 'modify':
+        train_csv = os.path.expanduser('~/Dataset/CV/birdclef-2025/train_final_df.csv')
+        train_df = pd.read_csv(train_csv)
 
     if args.mode == "pre":
         # Run pre-processing: generate and save spectrograms.
         run_preprocessing(train_df, CFG, CFG.spectrogram_npy)
         
     elif args.mode == "train":
-        run_train(train_df, CFG)
+        run_train(train_df, CFG, args)
         
     elif args.mode == "test":
         if not args.checkpoint:
             print("Checkpoint path is required for test mode.")
             return
-        run_test(CFG, args.checkpoint, train_df)  # For demo, using train_csv as test.
+        run_test(CFG, args.checkpoint, train_df, args)  # For demo, using train_csv as test.
         
     elif args.mode == "train_test":
-        run_train(train_df, CFG)
+        run_train(train_df, CFG, args)
         if not args.checkpoint:
             print("Checkpoint path is required for test mode after training.")
             return
-        run_test(CFG, args.checkpoint, train_df)
+        run_test(CFG, args.checkpoint, train_df, args)
     else:
         print("Unrecognized mode.")
 
@@ -73,6 +78,12 @@ if __name__ == "__main__":
         "--epochs", 
         type=int,
         help="Number of training epochs"
+    )
+    parser.add_argument(
+        "--datasets",
+        type=str,
+        choices=["origin", "modify"],
+        default='origin'
     )
     parser.add_argument(
         "--batch_size", 

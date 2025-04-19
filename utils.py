@@ -175,3 +175,23 @@ def run_preprocessing(df, cfg, save_path):
             spectrograms[samplename] = spec
     np.save(save_path, spectrograms)
     print(f"Preprocessing complete. Saved to {save_path}")
+
+class CustomDict(dict):
+
+    def __getitem__(self, key):
+        return np.load(key)
+
+    def __setitem__(self, key, value):
+        # Store the path to the data file instead of the actual data
+        # Assuming 'value' is the path to the .npy file
+        if isinstance(value, str):  # Ensure value is a string path
+            super().__setitem__(key, value)
+        else:
+            raise ValueError("Value must be a string representing the file path.")
+
+    def items(self):
+        # Override items to return actual NumPy arrays
+        for key in super().keys():
+            # if key.endswith('_path'):
+            #     original_key = key[:-5]  # Remove '_path' to get the original key
+            yield key, self[key]  # Load the value when yielding

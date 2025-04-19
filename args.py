@@ -2,6 +2,7 @@ import os
 
 # Global configuration can be set here or imported from a separate config file.
 class CFG:
+    datasets        = 'origin'
     seed            = 42
     debug           = False
     apex            = False
